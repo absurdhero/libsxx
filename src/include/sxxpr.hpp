@@ -13,7 +13,7 @@ private:
 		std::shared_ptr<Sexpr> car;
 		std::shared_ptr<Sexpr> cdr;
 
-		sexpr_cons(Sexpr *car, Sexpr *cdr) : car(car), cdr(cdr) {}
+		sexpr_cons(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr) : car(car), cdr(cdr) {}
         sexpr_cons() : car(), cdr() {}
 
 		// deep copy the car and cdr
@@ -26,7 +26,10 @@ private:
 		}
 	};
 
-	std::experimental::variant<sexpr_cons, bool, double, void*, std::shared_ptr<std::string>, int64_t> value;
+	typedef std::experimental::variant<void*, sexpr_cons, bool, double, std::shared_ptr<std::string>, int64_t> sexpr_variants;
+
+	static const Sexpr empty_value;
+	sexpr_variants value;
 
 public:
 	Sexpr() {}
@@ -35,7 +38,7 @@ public:
 	~Sexpr() = default;
 
 	// value constructors
-	Sexpr(Sexpr *car, Sexpr *cdr)
+	Sexpr(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr)
 		: value(sexpr_cons(car, cdr)) {}
 	Sexpr(std::string str) : value(std::make_shared<std::string>(str)) {}
 	Sexpr(const char *str) : value(std::make_shared<std::string>(std::string(str))) {}
@@ -43,6 +46,8 @@ public:
 	inline bool operator==(const Sexpr& rhs) const {
 		return rhs.value == value;
 	}
+
+	static const std::shared_ptr<Sexpr> empty;
 
 	std::shared_ptr<Sexpr> car() const {
 		try {
@@ -65,6 +70,10 @@ public:
 		return std::experimental::get<std::shared_ptr<std::string>>(value);
 	}
 
+	inline bool is_empty() const {
+		return value == empty_value.value;
+	}
+
 	void set_car(Sexpr *car) {
 		try {
 			return std::experimental::get<sexpr_cons>(value).car.reset(car);
@@ -81,7 +90,9 @@ public:
 		catch (std::experimental::bad_variant_access &) {
 			throw new SexprTypeException();
 		}
-
 	}
 
+	std::string to_text() const;
 };
+
+std::ostream& operator<<(std::ostream &out, const Sexpr &sexpr);
