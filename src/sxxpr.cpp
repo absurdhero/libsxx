@@ -10,7 +10,7 @@ std::string Sexpr::to_text() const {
 
     std::string text;
 
-    bool outer_sexpr = holds_alternative<sexpr_cons>(value);
+    bool outer_sexpr = is_pair();
 
     if (outer_sexpr) {
         text = '(';
@@ -22,13 +22,13 @@ std::string Sexpr::to_text() const {
             text += "<pointer>";
             break;
         }
-        else if (holds_alternative<sexpr_cons>(current)) {
-            sexpr_cons cons = get<sexpr_cons>(current);
+        else if (holds_alternative<sexpr_pair>(current)) {
+            sexpr_pair cons = get<sexpr_pair>(current);
             text += cons.car->to_text();
             if (!cons.cdr || cons.cdr->is_empty())
                 break;
             current = cons.cdr->value;
-            if (holds_alternative<sexpr_cons>(current))
+            if (holds_alternative<sexpr_pair>(current))
                 text += ' ';
             else
                 text += " . ";

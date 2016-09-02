@@ -9,24 +9,24 @@ class SexprTypeException : public std::exception {};
 
 class Sexpr {
 private:
-	struct sexpr_cons {
+	struct sexpr_pair {
 		std::shared_ptr<Sexpr> car;
 		std::shared_ptr<Sexpr> cdr;
 
-		sexpr_cons(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr) : car(car), cdr(cdr) {}
-        sexpr_cons() : car(), cdr() {}
+		sexpr_pair(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr) : car(car), cdr(cdr) {}
+        sexpr_pair() : car(), cdr() {}
 
 		// deep copy the car and cdr
-		sexpr_cons(const sexpr_cons &other)
+		sexpr_pair(const sexpr_pair &other)
 			: car(std::make_shared<Sexpr>(*other.car)),
 			cdr(std::make_shared<Sexpr>(*other.cdr)) {}
 
-		inline bool operator==(const sexpr_cons& rhs) const {
+		inline bool operator==(const sexpr_pair& rhs) const {
 			return car == rhs.car && cdr == rhs.cdr;
 		}
 	};
 
-	typedef std::experimental::variant<void*, sexpr_cons, bool, double, std::shared_ptr<std::string>, int64_t> sexpr_variants;
+	typedef std::experimental::variant<void*, sexpr_pair, bool, double, std::shared_ptr<std::string>, int64_t> sexpr_variants;
 
 	static const Sexpr empty_value;
 	sexpr_variants value;
@@ -39,7 +39,7 @@ public:
 
 	// value constructors
 	Sexpr(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr)
-		: value(sexpr_cons(car, cdr)) {}
+		: value(sexpr_pair(car, cdr)) {}
 	Sexpr(std::string str) : value(std::make_shared<std::string>(str)) {}
 	Sexpr(const char *str) : value(std::make_shared<std::string>(std::string(str))) {}
 
@@ -51,7 +51,7 @@ public:
 
 	std::shared_ptr<Sexpr> car() const {
 		try {
-			return std::experimental::get<sexpr_cons>(value).car;
+			return std::experimental::get<sexpr_pair>(value).car;
 		}
 		catch (std::experimental::bad_variant_access &) {
 			throw new SexprTypeException();
@@ -59,7 +59,7 @@ public:
 	}
 	std::shared_ptr<Sexpr> cdr() const {
 		try {
-			return std::experimental::get<sexpr_cons>(value).cdr;
+			return std::experimental::get<sexpr_pair>(value).cdr;
 		}
 		catch (std::experimental::bad_variant_access &) {
 			throw new SexprTypeException();
@@ -74,9 +74,13 @@ public:
 		return value == empty_value.value;
 	}
 
+	inline bool is_pair() const {
+		return std::experimental::holds_alternative<sexpr_pair>(value);
+	}
+
 	void set_car(Sexpr *car) {
 		try {
-			return std::experimental::get<sexpr_cons>(value).car.reset(car);
+			return std::experimental::get<sexpr_pair>(value).car.reset(car);
 		}
 		catch (std::experimental::bad_variant_access &) {
 			throw new SexprTypeException();
@@ -85,7 +89,7 @@ public:
 
 	void set_cdr(Sexpr *cdr) {
 		try {
-			return std::experimental::get<sexpr_cons>(value).cdr.reset(cdr);
+			return std::experimental::get<sexpr_pair>(value).cdr.reset(cdr);
 		}
 		catch (std::experimental::bad_variant_access &) {
 			throw new SexprTypeException();
