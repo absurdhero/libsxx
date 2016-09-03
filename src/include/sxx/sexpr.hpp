@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <variant.hpp>
+#include <sxx/variant.hpp>
 
 namespace sxx {
 

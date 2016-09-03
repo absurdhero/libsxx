@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <sxxpr.hpp>
+#include <sxx/sexpr.hpp>
 
 using namespace sxx;
 
