@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <sxx/variant.hpp>
+#include <sxx/any.hpp>
 
 namespace sxx {
 
@@ -35,13 +35,11 @@ namespace sxx {
 			}
 		};
 
-		typedef std::experimental::variant<void*, sexpr_pair, bool, double, std::shared_ptr<std::string>, int64_t> sexpr_variants;
-
 		static const Sexpr empty_value;
-		sexpr_variants value;
+		any value;
 
 		template<class T>
-		Sexpr(sexpr_variants value) : value(value) {}
+		Sexpr(any value) : value(value) {}
 
 	public:
 		Sexpr() {}
@@ -54,13 +52,19 @@ namespace sxx {
 		Sexpr(const char *str) : value(std::make_shared<std::string>(std::string(str))) {}
 
 		inline bool operator==(const Sexpr& rhs) const {
+            if (is_pair()) {
+                if (!rhs.is_pair())
+                    return false;
+                else
+                return any_cast<sexpr_pair>(value) == any_cast<sexpr_pair>(rhs.value);
+            }
 			return rhs.value == value;
 		}
 
 		static const std::shared_ptr<Sexpr> empty;
 
 		std::shared_ptr<std::string> as_str() const {
-			return std::experimental::get<std::shared_ptr<std::string>>(value);
+			return any_cast<std::shared_ptr<std::string>>(value);
 		}
 
 		inline bool is_empty() const {
@@ -68,7 +72,7 @@ namespace sxx {
 		}
 
 		inline bool is_pair() const {
-			return std::experimental::holds_alternative<sexpr_pair>(value);
+			return value.type() == typeid(sexpr_pair);
 		}
 
 		std::string to_text() const;
@@ -81,7 +85,7 @@ namespace sxx {
 
 		Pair(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr)
 			: Sexpr() {
-			value.emplace<sexpr_pair>(sexpr_pair(car, cdr));
+			value = sexpr_pair(car, cdr);
 		}
 
 		Pair(Sexpr &sexpr) : Sexpr(sexpr) {
@@ -100,35 +104,35 @@ namespace sxx {
 
 		std::shared_ptr<Sexpr> car() const {
 			try {
-				return std::experimental::get<sexpr_pair>(value).car;
+				return any_cast<sexpr_pair>(value).car;
 			}
-			catch (std::experimental::bad_variant_access &) {
+			catch (bad_any_cast &) {
 				throw new SexprTypeException();
 			}
 		}
 		std::shared_ptr<Sexpr> cdr() const {
 			try {
-				return std::experimental::get<sexpr_pair>(value).cdr;
+				return any_cast<sexpr_pair>(value).cdr;
 			}
-			catch (std::experimental::bad_variant_access &) {
+			catch (bad_any_cast &) {
 				throw new SexprTypeException();
 			}
 		}
 
 		void set_car(Sexpr *car) {
 			try {
-				return std::experimental::get<sexpr_pair>(value).car.reset(car);
+				return any_cast<sexpr_pair>(value).car.reset(car);
 			}
-			catch (std::experimental::bad_variant_access &) {
+			catch (bad_any_cast &) {
 				throw new SexprTypeException();
 			}
 		}
 
 		void set_cdr(Sexpr *cdr) {
 			try {
-				return std::experimental::get<sexpr_pair>(value).cdr.reset(cdr);
+				return any_cast<sexpr_pair>(value).cdr.reset(cdr);
 			}
-			catch (std::experimental::bad_variant_access &) {
+			catch (bad_any_cast &) {
 				throw new SexprTypeException();
 			}
 		}
