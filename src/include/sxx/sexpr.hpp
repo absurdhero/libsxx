@@ -16,138 +16,182 @@ namespace sxx {
         }
 	};
 
+	/** Symbols are immutable strings with their own distinct type.
+	* Symbols should share their string values with each other.
+	*/
+    class Symbol {
+    private:
+        std::shared_ptr<const std::string> value;
+    public:
+        Symbol(const Symbol &str) : value(str.value) {}
+        Symbol(const Symbol &&str) : value(str.value) {}
+		Symbol(const std::shared_ptr<const std::string> value) : value(value) {}
+		Symbol(const std::string &str) : value(std::make_shared<const std::string>(str)) {}
+        Symbol(const std::string &&str) : value(std::make_shared<const std::string>(str)) {}
+
+        const char *c_str() {
+            return value->c_str();
+        }
+
+        std::shared_ptr<const std::string> shared_str() const {
+            return value;
+        }
+
+		bool operator==(const Symbol& rhs) const {
+			return *value == *rhs.value;
+		}
+	};
+
+	/** The main s-expression value type that holds any value or a pair of values (Sexpr::pair). */
 	class Sexpr {
 	protected:
-		struct sexpr_pair {
-			std::shared_ptr<Sexpr> car;
-			std::shared_ptr<Sexpr> cdr;
 
-			sexpr_pair(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr) : car(car), cdr(cdr) {}
-			sexpr_pair() : car(), cdr() {}
-
-			// deep copy the car and cdr
-			sexpr_pair(const sexpr_pair &other)
-				: car(std::make_shared<Sexpr>(*other.car)),
-				cdr(std::make_shared<Sexpr>(*other.cdr)) {}
-
-			inline bool operator==(const sexpr_pair& rhs) const {
-				return car == rhs.car && cdr == rhs.cdr;
-			}
-		};
-
-		static const Sexpr empty_value;
 		any value;
 
-		template<class T>
-		Sexpr(any value) : value(value) {}
-
 	public:
+
+		typedef std::shared_ptr<Sexpr> ptr;
+
+		struct pair {
+			Sexpr::ptr car;
+			Sexpr::ptr cdr;
+
+			pair(Sexpr::ptr car, Sexpr::ptr cdr) : car(car), cdr(cdr) {}
+			pair() : car(), cdr() {}
+
+			pair(const pair &other) = default;
+
+			bool operator==(const pair& rhs) const;
+		};
+
+		static const Sexpr empty;
+
 		Sexpr() {}
 		Sexpr(const Sexpr &other) = default;
 		Sexpr(Sexpr &&other) = default;
 		virtual ~Sexpr() = default;
 
-		// value constructors - these will go away once type classes exist
-		Sexpr(std::string str) : value(std::make_shared<std::string>(str)) {}
-		Sexpr(const char *str) : value(std::make_shared<std::string>(std::string(str))) {}
+		Sexpr(const char *value) : value(std::string(value)) {}
+		Sexpr(Symbol value) : value(value) {}
+		Sexpr(std::string value) : value(value) {}
+		Sexpr(Sexpr::pair value) : value(value) {}
 
-		inline bool operator==(const Sexpr& rhs) const {
-            if (is_pair()) {
-                if (!rhs.is_pair())
-                    return false;
-                else
-                return any_cast<sexpr_pair>(value) == any_cast<sexpr_pair>(rhs.value);
-            }
-			return rhs.value == value;
+		Sexpr(const any &value) : value(value) {}
+		Sexpr(any &&value) : value(value) {}
+
+		bool operator==(const Sexpr &rhs) const;
+
+        bool as_bool() const {
+            return any_cast<bool>(value);
+        }
+
+		pair as_pair() const {
+			return any_cast<pair>(value);
 		}
 
-		static const std::shared_ptr<Sexpr> empty;
-
-		std::shared_ptr<std::string> as_str() const {
-			return any_cast<std::shared_ptr<std::string>>(value);
+		std::string as_string() const {
+			return any_cast<std::string>(value);
 		}
 
-		inline bool is_empty() const {
-			return value == empty_value.value;
+		Symbol as_symbol() const {
+			return any_cast<Symbol>(value);
 		}
 
-		inline bool is_pair() const {
-			return value.type() == typeid(sexpr_pair);
+		bool is_empty() const {
+			return value.empty();
 		}
+
+		bool is_bool() const {
+			return value.type() == typeid(bool);
+		}
+
+		bool is_pair() const {
+			return value.type() == typeid(pair);
+		}
+
+		bool is_string() const {
+			return value.type() == typeid(std::string);
+		}
+
+		bool is_symbol() const {
+			return value.type() == typeid(Symbol);
+		}
+
+		Sexpr::ptr first() const;
+
+		Sexpr::ptr rest() const;
+
+		void set_first(Sexpr *first);
+
+		void set_rest(Sexpr *rest);
 
 		std::string to_text() const;
 	};
 
-	// Sexpr type classes
 
-	class Pair : public Sexpr {
+	// Rich Sexpr wrapper classes
+
+	class List {
 	public:
+		static const Sexpr::ptr null;
 
-		Pair(std::shared_ptr<Sexpr> car, std::shared_ptr<Sexpr> cdr)
-			: Sexpr() {
-			value = sexpr_pair(car, cdr);
+		Sexpr::ptr sexpr;
+
+		List(Sexpr::ptr car, Sexpr::ptr cdr) : sexpr(std::make_shared<Sexpr>(Sexpr::pair(car, cdr)))
+		{
 		}
 
-		Pair(Sexpr &sexpr) : Sexpr(sexpr) {
+		List(const Sexpr &sexpr) : sexpr(std::make_shared<Sexpr>(sexpr)) {
 			if (!sexpr.is_pair()) {
 				throw SexprTypeException();
 			}
 		}
 
-		Pair(Sexpr &&sexpr) : Sexpr(sexpr) {
+		List(Sexpr &&sexpr) : sexpr(std::make_shared<Sexpr>(std::forward<Sexpr>(sexpr))) {
 			if (!sexpr.is_pair()) {
 				throw SexprTypeException();
 			}
 		}
 
-		Pair(std::shared_ptr<Sexpr> &sexpr) : Pair(*sexpr) {}
+		List(Sexpr::ptr &sexpr) : sexpr(sexpr) {}
 
-		std::shared_ptr<Sexpr> car() const {
-			try {
-				return any_cast<sexpr_pair>(value).car;
-			}
-			catch (bad_any_cast &) {
-				throw new SexprTypeException();
-			}
-		}
-		std::shared_ptr<Sexpr> cdr() const {
-			try {
-				return any_cast<sexpr_pair>(value).cdr;
-			}
-			catch (bad_any_cast &) {
-				throw new SexprTypeException();
-			}
+        bool operator==(const List& rhs) const {
+            return *sexpr == *rhs.sexpr;
+        }
+
+		std::string to_text() const {
+			return sexpr->to_text();
 		}
 
-		void set_car(Sexpr *car) {
-			try {
-				return any_cast<sexpr_pair>(value).car.reset(car);
-			}
-			catch (bad_any_cast &) {
-				throw new SexprTypeException();
-			}
+		Sexpr::ptr first() const {
+			return sexpr->first();
 		}
 
-		void set_cdr(Sexpr *cdr) {
-			try {
-				return any_cast<sexpr_pair>(value).cdr.reset(cdr);
-			}
-			catch (bad_any_cast &) {
-				throw new SexprTypeException();
-			}
+		Sexpr::ptr rest() const {
+			return sexpr->rest();
 		}
+
+		void set_first(Sexpr *first) {
+			sexpr->set_first(first);
+		}
+
+		void set_rest(Sexpr *rest) {
+			sexpr->set_rest(rest);
+		}
+
 	};
 
 
-	// static s-expression operations
-
-	inline std::shared_ptr<Sexpr> car(std::shared_ptr<Sexpr> sexpr) {
-		return Pair(sexpr).car();
+	inline std::ostream& operator<<(std::ostream &out, const Sexpr &sexpr) {
+		return out << sexpr.to_text();
 	}
 
-	inline std::shared_ptr<Sexpr> cdr(std::shared_ptr<Sexpr> sexpr) {
-		return Pair(sexpr).cdr();
+	inline std::ostream& operator<<(std::ostream &out, const Sexpr::ptr &sexpr) {
+		return out << "(shared_ptr " << sexpr->to_text() << ")";
 	}
 
-	std::ostream& operator<<(std::ostream &out, const Sexpr &sexpr);
+	inline std::ostream& operator<<(std::ostream &out, const List &list) {
+		return out << list.to_text();
+	}
+
 }
