@@ -16,9 +16,15 @@ namespace sxx {
         }
     };
 
+    template<class... _Types>
+    inline std::shared_ptr<Sexpr> make(_Types&&... _Args)
+    {
+        return std::make_shared<Sexpr>(std::forward<_Types>(_Args)...);
+    }
+
     /** Symbols are immutable strings with their own distinct type.
-    * Symbols should share their string values with each other.
-    */
+     *  Symbols should share their string values with each other.
+     */
     class Symbol {
     private:
         std::shared_ptr<const std::string> value;
@@ -42,15 +48,16 @@ namespace sxx {
         }
     };
 
-    /** The main s-expression value type that holds any value or a pair of values (Sexpr::pair). */
+    /** s-expression value type that holds any value or a pair of values (Sexpr::pair). */
     class Sexpr {
     protected:
-
         any value;
 
     public:
 
-        typedef std::shared_ptr<Sexpr> ptr;
+        using ptr = std::shared_ptr<Sexpr>;
+
+        static const Sexpr empty;
 
         struct pair {
             Sexpr::ptr car;
@@ -61,12 +68,26 @@ namespace sxx {
 
             pair(const pair &other) = default;
 
-            bool operator==(const pair& rhs) const;
+            /** deep equality check */
+            bool operator==(const Sexpr::pair &rhs) const {
+                return *car == *rhs.car && *cdr == *rhs.cdr;
+            }
+
+            /** pointer equality check of car and cdr */
+            bool ptr_equals(const Sexpr::pair &rhs) const {
+                return car == rhs.car && cdr == rhs.cdr;
+            }
         };
 
-        static const Sexpr empty;
+        using bool_t = bool;
+        using pair_t = pair;
+        using string_t = std::string;
+        using symbol_t = Symbol;
+        using int_t = int64_t;
+        using double_t = double;
+        using void_t = void*;
 
-        Sexpr() {}
+        Sexpr() = default;
         Sexpr(const Sexpr &other) = default;
         Sexpr(Sexpr &&other) = default;
         virtual ~Sexpr() = default;
@@ -95,6 +116,11 @@ namespace sxx {
 
         Symbol as_symbol() const {
             return any_cast<Symbol>(value);
+        }
+
+        template<class T>
+        T get() {
+            return any_cast<T>(value);
         }
 
         bool is_empty() const {
@@ -128,7 +154,6 @@ namespace sxx {
         std::string to_text() const;
     };
 
-
     // Rich Sexpr wrapper classes
 
     class List {
@@ -137,17 +162,17 @@ namespace sxx {
 
         Sexpr::ptr sexpr;
 
-        List(Sexpr::ptr car, Sexpr::ptr cdr) : sexpr(std::make_shared<Sexpr>(Sexpr::pair(car, cdr)))
+        List(Sexpr::ptr car, Sexpr::ptr cdr) : sexpr(make(Sexpr::pair(car, cdr)))
         {
         }
 
-        List(const Sexpr &sexpr) : sexpr(std::make_shared<Sexpr>(sexpr)) {
+        List(const Sexpr &sexpr) : sexpr(make(sexpr)) {
             if (!sexpr.is_pair()) {
                 throw SexprTypeException();
             }
         }
 
-        List(Sexpr &&sexpr) : sexpr(std::make_shared<Sexpr>(std::forward<Sexpr>(sexpr))) {
+        List(Sexpr &&sexpr) : sexpr(make(std::forward<Sexpr>(sexpr))) {
             if (!sexpr.is_pair()) {
                 throw SexprTypeException();
             }
@@ -180,7 +205,6 @@ namespace sxx {
         }
 
     };
-
 
     inline std::ostream& operator<<(std::ostream &out, const Sexpr &sexpr) {
         return out << sexpr.to_text();

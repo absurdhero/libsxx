@@ -1,12 +1,8 @@
 #include <sxx/sexpr.hpp>
 
 namespace sxx {
-    const Sexpr Sexpr::empty = Sexpr();
-    const Sexpr::ptr List::null = std::make_shared<Sexpr>();
-
-    bool Sexpr::pair::operator==(const Sexpr::pair& rhs) const {
-        return *car == *rhs.car && *cdr == *rhs.cdr;
-    }
+    const Sexpr Sexpr::empty;
+    const Sexpr::ptr List::null = make();
 
     std::string Sexpr::to_text() const {
         std::string text;
@@ -47,13 +43,13 @@ namespace sxx {
             else if (current->is_symbol()) {
                 text += current->as_symbol().c_str();
             }
-            else if (current->value.type() == typeid(double)) {
-                text += std::to_string(any_cast<double>(current));
+            else if (current->value.type() == typeid(Sexpr::double_t)) {
+                text += std::to_string(any_cast<Sexpr::double_t>(current));
             }
-            else if (current->value.type() == typeid(int64_t)) {
-                text += std::to_string(any_cast<int64_t>(current));
+            else if (current->value.type() == typeid(Sexpr::int_t)) {
+                text += std::to_string(any_cast<Sexpr::int_t>(current));
             }
-            else if (current->value.type() == typeid(void*)) {
+            else if (current->value.type() == typeid(Sexpr::void_t)) {
                 text += "<pointer>";
             }
             else {
@@ -90,7 +86,7 @@ namespace sxx {
 
     Sexpr::ptr Sexpr::first() const {
         try {
-            return any_cast<Sexpr::pair>(value).car;
+            return any_cast<pair_t>(value).car;
         }
         catch (bad_any_cast &) {
             throw new SexprTypeException();
@@ -99,7 +95,7 @@ namespace sxx {
 
     Sexpr::ptr Sexpr::rest() const {
         try {
-            return any_cast<Sexpr::pair>(value).cdr;
+            return any_cast<pair_t>(value).cdr;
         }
         catch (bad_any_cast &) {
             throw new SexprTypeException();
@@ -108,7 +104,7 @@ namespace sxx {
 
     void Sexpr::set_first(Sexpr *first) {
         try {
-            return any_cast<Sexpr::pair>(value).car.reset(first);
+            return any_cast<pair_t>(value).car.reset(first);
         }
         catch (bad_any_cast &) {
             throw new SexprTypeException();
@@ -117,7 +113,7 @@ namespace sxx {
 
     void Sexpr::set_rest(Sexpr *rest) {
         try {
-            return any_cast<Sexpr::pair>(value).cdr.reset(rest);
+            return any_cast<pair_t>(value).cdr.reset(rest);
         }
         catch (bad_any_cast &) {
             throw new SexprTypeException();

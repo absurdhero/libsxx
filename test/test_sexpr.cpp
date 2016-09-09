@@ -32,7 +32,7 @@ TEST(Sexpr, symbol_equals)
 
 TEST(ToText, list_size_one)
 {
-    List sexpr(std::make_shared<Sexpr>(Symbol("foo")), List::null);
+    List sexpr(make(Symbol("foo")), List::null);
     ASSERT_EQ(Sexpr::empty, *sexpr.rest());
     ASSERT_STREQ("foo", sexpr.first()->as_symbol().c_str());
     ASSERT_STREQ("foo", sexpr.first()->to_text().c_str());
@@ -41,8 +41,8 @@ TEST(ToText, list_size_one)
 
 TEST(ToText, list_size_two)
 {
-    List two(std::make_shared<Sexpr>("bar"), List::null);
-    List one(std::make_shared<Sexpr>("foo"), two.sexpr);
+    List two(make("bar"), List::null);
+    List one(make("foo"), two.sexpr);
     ASSERT_EQ(*two.sexpr, *one.rest());
     ASSERT_FALSE(one.rest()->is_empty());
     ASSERT_TRUE(one.rest()->is_pair());
@@ -53,24 +53,24 @@ TEST(ToText, list_size_two)
 
 TEST(ToText, dotted_pair)
 {
-    List sexpr(std::make_shared<Sexpr>(Symbol("foo")), std::make_shared<Sexpr>("bar"));
+    List sexpr(make(Symbol("foo")), make("bar"));
     ASSERT_STREQ("(foo . \"bar\")", sexpr.to_text().c_str());
 }
 
 
 TEST(ToText, list_size_three)
 {
-    auto three = std::make_shared<List>(std::make_shared<Sexpr>("baz"), List::null);
-    auto two = std::make_shared<List>(std::make_shared<Sexpr>("bar"), three->sexpr);
-    List one(std::make_shared<Sexpr>("foo"), two->sexpr);
+    auto three = std::make_shared<List>(make("baz"), List::null);
+    auto two = std::make_shared<List>(make("bar"), three->sexpr);
+    List one(make("foo"), two->sexpr);
     ASSERT_STREQ("(\"foo\" \"bar\" \"baz\")", one.to_text().c_str());
 }
 
 TEST(ToText, list_size_three_dotted)
 {
     auto two = std::make_shared<List>(
-        std::make_shared<Sexpr>(Symbol("bar")),
-        std::make_shared<Sexpr>(Symbol("baz")));
-    List one(std::make_shared<Sexpr>(Symbol("foo")), two->sexpr);
+        make(Symbol("bar")),
+        make(Symbol("baz")));
+    List one(make(Symbol("foo")), two->sexpr);
     ASSERT_STREQ("(foo bar . baz)", one.to_text().c_str());
 }
