@@ -25,3 +25,17 @@ the project.
 `build.sh` runs make inside the `build` directory and then
 runs the tests.
 
+## References and Inspirations
+
+[The Scheme Reports](http://www.scheme-reports.org)
+
+The most comprehensive reference of s-expression operations.
+
+[jackson-core](https://github.com/FasterXML/jackson-core)
+
+Powerful serialization/deserialization library for Java
+with pluggable parsing and a great traversal API.
+
+[JSON for Modern C++](https://github.com/nlohmann/json)
+
+A header-only JSON library with a convenient API and STL container compatibility.
