@@ -15,15 +15,14 @@ between different parts of your code.
 
 ## Building
 
-Requires cmake 2.8 or above and a compiler that supports C++14.
-The project has been tested on gcc 5.4 on Ubuntu 16.04.
+Requires cmake 2.8.11 or above and a compiler that supports C++14.
+The project has been tested on gcc 5.4 on Ubuntu 16.04 and on
+Visual Studio 2015 Update 3 with CMake 3.6.1.
 
-The included `configure.sh` generates a cmake build in the
-`build` directory. On windows, use the cmake GUI to generate
-the project.
+The included `configure.sh` generates a cmake build in the `build` directory.
+On Windows, use the cmake GUI to generate the project.
 
-`build.sh` runs make inside the `build` directory and then
-runs the tests.
+`build.sh` runs make inside the `build` directory and then runs the tests.
 
 ## References and Inspirations
 
