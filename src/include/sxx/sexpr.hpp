@@ -46,6 +46,10 @@ namespace sxx {
         bool operator==(const Symbol& rhs) const {
             return *value == *rhs.value;
         }
+
+        bool operator<(const Symbol& rhs) {
+            return *value < *rhs.value;
+        }
     };
 
     /** s-expression value type that holds any value or a pair of values (Sexpr::pair). */
@@ -96,6 +100,7 @@ namespace sxx {
         Sexpr(Symbol value) : value(value) {}
         Sexpr(std::string value) : value(value) {}
         Sexpr(Sexpr::pair value) : value(value) {}
+        Sexpr(Sexpr::ptr first, Sexpr::ptr rest) : value(pair(first, rest)) {}
 
         Sexpr(const any &value) : value(value) {}
         Sexpr(any &&value) : value(value) {}
@@ -154,57 +159,11 @@ namespace sxx {
         std::string to_text() const;
     };
 
-    // Rich Sexpr wrapper classes
+    const Sexpr::ptr nil = make();
 
-    class List {
-    public:
-        static const Sexpr::ptr null;
-
-        Sexpr::ptr sexpr;
-
-        List(Sexpr::ptr car, Sexpr::ptr cdr) : sexpr(make(Sexpr::pair(car, cdr)))
-        {
-        }
-
-        List(const Sexpr &sexpr) : sexpr(make(sexpr)) {
-            if (!sexpr.is_pair()) {
-                throw SexprTypeException();
-            }
-        }
-
-        List(Sexpr &&sexpr) : sexpr(make(std::forward<Sexpr>(sexpr))) {
-            if (!sexpr.is_pair()) {
-                throw SexprTypeException();
-            }
-        }
-
-        List(Sexpr::ptr &sexpr) : sexpr(sexpr) {}
-
-        bool operator==(const List& rhs) const {
-            return *sexpr == *rhs.sexpr;
-        }
-
-        std::string to_text() const {
-            return sexpr->to_text();
-        }
-
-        Sexpr::ptr first() const {
-            return sexpr->first();
-        }
-
-        Sexpr::ptr rest() const {
-            return sexpr->rest();
-        }
-
-        void set_first(Sexpr *first) {
-            sexpr->set_first(first);
-        }
-
-        void set_rest(Sexpr *rest) {
-            sexpr->set_rest(rest);
-        }
-
-    };
+    inline std::ostream& operator<<(std::ostream &out, const Symbol &symbol) {
+        return out << *symbol.shared_str();
+    }
 
     inline std::ostream& operator<<(std::ostream &out, const Sexpr &sexpr) {
         return out << sexpr.to_text();
@@ -213,9 +172,4 @@ namespace sxx {
     inline std::ostream& operator<<(std::ostream &out, const Sexpr::ptr &sexpr) {
         return out << "(shared_ptr " << sexpr->to_text() << ")";
     }
-
-    inline std::ostream& operator<<(std::ostream &out, const List &list) {
-        return out << list.to_text();
-    }
-
 }

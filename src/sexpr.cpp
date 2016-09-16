@@ -2,7 +2,6 @@
 
 namespace sxx {
     const Sexpr Sexpr::empty;
-    const Sexpr::ptr List::null = make();
 
     std::string Sexpr::to_text() const {
         std::string text;
